@@ -231,6 +231,15 @@ function renderDevice(dev){
   editG.appendChild(editT);
   editG.addEventListener('click', e => { e.stopPropagation(); openEditDevice(dev.id); });
 
+  g.addEventListener('mouseenter', () => {
+    bg.setAttribute('stroke', dev.color);
+    bg.setAttribute('stroke-width', '1.2');
+  });
+  g.addEventListener('mouseleave', () => {
+    bg.setAttribute('stroke', dev.dashed ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.08)');
+    bg.setAttribute('stroke-width', '0.6');
+  });
+
   g.appendChild(shadow);
   g.appendChild(bg);
   g.appendChild(accent);
