@@ -15,6 +15,7 @@
 <div class="topbar">
   <div class="topbar-left">
     <div class="logo">Home<span>Station</span></div>
+    <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
     <div class="sep"></div>
     <button class="tbtn" id="btn-cables" onclick="toggleCables()">Dim cables</button>
     <button class="tbtn" id="btn-labels" onclick="toggleLabels()">Dim labels</button>
@@ -23,13 +24,14 @@
     <button class="tbtn active" id="btn-draw" onclick="setMode('draw')" title="Draw cable connections between ports">+ Draw connection</button>
     <button class="tbtn" id="btn-select" onclick="setMode('select')" title="Select & move devices">Select / move</button>
     <div class="sep"></div>
-    <button class="tbtn" onclick="openAddDevice()">+ Add device</button>
+    <button class="tbtn" id="btn-add-device" onclick="openAddDevice()">+ Add device</button>
     <button class="tbtn danger" id="btn-del-cable" onclick="deleteSelected()" style="display:none">Delete selected</button>
   </div>
 </div>
 
 <!-- ══ MAIN ══ -->
 <div class="layout">
+<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
 
 <!-- CANVAS -->
 <div class="canvas-wrap" id="canvas-wrap">
@@ -247,10 +249,14 @@
 <div class="statusbar">
   <div class="status-dot"></div>
   <span id="status-text">Draw mode — click an output port to start a cable connection</span>
-  <span style="margin-left:auto;display:flex;align-items:center;gap:16px">
+  <span class="statusbar-desk" style="margin-left:auto;display:flex;align-items:center;gap:16px">
     <span id="save-indicator" style="font-size:9px;color:var(--text-3);transition:color .4s">Not yet saved</span>
-    <span style="color:var(--text-3)">Husky 72" × 24" · Zero PC (right) · Project Flow (left)</span>
+    <span style="color:var(--text-3)">Husky 72" &times; 24" &middot; Zero PC (right) &middot; Project Flow (left)</span>
     <button class="tbtn danger" onclick="resetToDefaults()" style="font-size:9px;padding:3px 10px;height:20px;line-height:1">Reset to defaults</button>
+  </span>
+  <span class="statusbar-mobile" style="margin-left:auto;display:none;align-items:center;gap:8px">
+    <span id="save-indicator-mobile" style="font-size:9px;color:var(--text-3);transition:color .4s">Not yet saved</span>
+    <button class="tbtn danger" onclick="resetToDefaults()" style="font-size:9px;padding:3px 8px;height:20px;line-height:1">Reset</button>
   </span>
 </div>
 

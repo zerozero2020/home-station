@@ -4,6 +4,7 @@
 const svg = document.getElementById('canvas-svg');
 const cableLayer = document.getElementById('cable-layer');
 const deviceLayer = document.getElementById('device-layer');
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
 let mode = 'draw'; // 'draw' | 'select'
 let devices = [];
@@ -286,20 +287,21 @@ function renderDevice(dev){
     // Port dot
     const dotX = isOut ? dev.x + dev.w : dev.x;
     const dotY = py + portH/2;
+    const dotR = isTouchDevice ? 8 : 5.5;
     const dot = makeSVGEl('circle',{
-      cx:dotX, cy:dotY, r:5.5, fill:color,
+      cx:dotX, cy:dotY, r:dotR, fill:color,
       stroke:'rgba(0,0,0,.5)', 'stroke-width':'1',
       style:'cursor:pointer',
       'data-devid':dev.id, 'data-portid':port.id
     });
 
     dot.addEventListener('mouseenter',()=>{
-      dot.setAttribute('r','7.5');
+      dot.setAttribute('r', isTouchDevice ? '10' : '7.5');
       dot.setAttribute('stroke','#fff');
       showTip(dot, `${port.label} (${CABLE_LABELS[port.ctype]||port.ctype})`);
     });
     dot.addEventListener('mouseleave',()=>{
-      dot.setAttribute('r','5.5');
+      dot.setAttribute('r', String(dotR));
       dot.setAttribute('stroke','rgba(0,0,0,.5)');
       hideTip();
     });
@@ -313,7 +315,7 @@ function renderDevice(dev){
     g.appendChild(dot);
   });
 
-  // Drag setup (select mode)
+  // Drag setup (select mode) — mouse + touch
   let dragging = false, dx=0, dy=0;
   bg.addEventListener('mousedown', e=>{
     if(mode !== 'select') return;
@@ -334,6 +336,30 @@ function renderDevice(dev){
     dragging = false;
     document.removeEventListener('mousemove', onDrag);
     document.removeEventListener('mouseup', stopDrag);
+  }
+  bg.addEventListener('touchstart', e=>{
+    if(mode !== 'select') return;
+    e.stopPropagation();
+    e.preventDefault();
+    dragging = true;
+    const t = e.touches[0];
+    dx = t.clientX - dev.x;
+    dy = t.clientY - dev.y;
+    document.addEventListener('touchmove', onTouchDrag, {passive:false});
+    document.addEventListener('touchend', stopTouchDrag);
+  },{passive:false});
+  function onTouchDrag(e){
+    if(!dragging) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    dev.x = t.clientX - dx;
+    dev.y = t.clientY - dy;
+    renderAll();
+  }
+  function stopTouchDrag(){
+    dragging = false;
+    document.removeEventListener('touchmove', onTouchDrag);
+    document.removeEventListener('touchend', stopTouchDrag);
   }
 
   return g;
@@ -462,7 +488,7 @@ function cancelCableDraw(){
   setStatus('Draw mode — click an output port to start a cable connection');
 }
 
-// Preview cable follows mouse
+// Preview cable follows mouse / finger
 svg.addEventListener('mousemove', e=>{
   if(!drawState) return;
   const rect = svg.getBoundingClientRect();
@@ -474,6 +500,19 @@ svg.addEventListener('mousemove', e=>{
   prev.setAttribute('x2', mx);
   prev.setAttribute('y2', my);
 });
+svg.addEventListener('touchmove', e=>{
+  if(!drawState) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const rect = svg.getBoundingClientRect();
+  const scaleX = 2400 / rect.width;
+  const scaleY = 1200 / rect.height;
+  const mx = (t.clientX - rect.left) * scaleX;
+  const my = (t.clientY - rect.top)  * scaleY;
+  const prev = document.getElementById('preview-cable');
+  prev.setAttribute('x2', mx);
+  prev.setAttribute('y2', my);
+},{passive:false});
 
 svg.addEventListener('click', e=>{
   if(e.target === svg || e.target.tagName === 'rect' && !e.target.closest('[data-devid]')){
@@ -835,6 +874,22 @@ function renderAllAndSave(){
 window.renderAll = renderAllAndSave;
 
 // ═══════════════════════════════════════════
+// SIDEBAR TOGGLE (mobile)
+// ═══════════════════════════════════════════
+function toggleSidebar(){
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const isOpen = sidebar.classList.contains('open');
+  sidebar.classList.toggle('open', !isOpen);
+  backdrop.classList.toggle('show', !isOpen);
+}
+
+function closeSidebar(){
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════
 // INIT — load from localStorage or use defaults
 // ═══════════════════════════════════════════
 const hadSavedState = loadState();
@@ -848,3 +903,34 @@ setStatus(hadSavedState
   ? 'Loaded your saved setup — all devices, cables, and positions restored'
   : 'Draw mode — click an output port to start a cable connection'
 );
+
+// ── Mobile init: abbreviate button text and sync save indicator ──
+if(window.innerWidth <= 768){
+  document.getElementById('btn-draw').textContent = 'Draw';
+  document.getElementById('btn-select').textContent = 'Move';
+  const addBtn = document.getElementById('btn-add-device');
+  if(addBtn) addBtn.textContent = '+ Add';
+  const delBtn = document.getElementById('btn-del-cable');
+  if(delBtn) delBtn.textContent = 'Delete';
+}
+
+// Sync mobile save indicator with main save indicator
+const _saveState = saveState;
+function saveState(){
+  _saveState();
+  const main = document.getElementById('save-indicator');
+  const mob  = document.getElementById('save-indicator-mobile');
+  if(main && mob) mob.textContent = main.textContent;
+}
+window.saveState = saveState;
+
+// On mobile, open sidebar when "Add device" is tapped
+const origOpenAddDevice = openAddDevice;
+function openAddDevice(){
+  origOpenAddDevice();
+  if(window.innerWidth <= 768){
+    document.querySelector('.sidebar').classList.add('open');
+    document.getElementById('sidebar-backdrop').classList.add('show');
+  }
+}
+window.openAddDevice = openAddDevice;
